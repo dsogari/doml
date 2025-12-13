@@ -19,19 +19,19 @@ frontmatter (opaque)
 ---
 ```
 
-Its content is _opaque_ (i.e., uninterpreted by the parser), and can be used by renderers as metadata — e.g., CSS stylesheet, YAML/TOML configuration.
+Its content is _opaque_ (i.e., uninterpreted by the parser) and can be used by renderers for tooling purposes — e.g., CSS stylesheet, YAML/TOML configuration.
 
 ## Markup
 
-Any text that is not recognized as either frontmatter, preprocessing or escape sequence is considered **markup**. Markup is divided into _elements_, which can be classified both in terms of how they are _framed_ in the source document, and how they are _presented_ in the rendered output.
+Any text that is not recognized as frontmatter, preprocessing, or escape sequence is considered **markup**. Markup is divided into _elements_, which can be classified both in terms of how they are _framed_ (or _marked out_) in the source document and how they are _presented_ (or _laid out_) in the rendered output.
 
-In source, elements follow a **coherent, precise and flexible syntax**. They may have _content_, which may contain inner, arbitrarily nested markup; and their behavior can be configured through markup _attributes_, which follow a flat structure.
+In the source, elements follow a **coherent, precise, and flexible syntax**. They can have _content_, which may contain arbitrarily nested markup; and their behavior can be configured through markup _attributes_, which follow a flat structure.
 
 This section describes the various types of markup elements, how they can be instantiated, their rendering implications, and related concepts.
 
 ### Markup element
 
-An **element** in the source document is a piece of information that has meaning. The most basic type of element is the _paragraph_. Paragraphs are delimited by sequences of blank lines or the end of file. Any text interleaving elements in a paragraph is considered part of the paragraph, flowing along with other elements.
+An **element** in the source document is a piece of information that has meaning. The most basic type of element is the _paragraph_. Paragraphs are delimited by sequences of blank lines or by the end-of-file. Any text interspersed with other elements within a paragraph is considered _inline_, _free_ or _flowing_ text (not to be confused with _floating_).
 
 The more interesting elements are summarized below:
 
@@ -71,36 +71,38 @@ The more interesting elements are summarized below:
 | `><[centered]`          | `p`, `text-align`            | text alignment       | max-width     | ❌     |
 | `<>[justified]`         | `p`, `text-align`            | text alignment       | max-width     | ❌     |
 
-### Markup frame
+### Markout & layout
 
-Markup elements can be instantiated in different formats, according to their disposition in the source document. Each such format is called a **frame**, and implies a presentation layout:
+Markup elements can be instantiated in different formats, depending on their arrangement in the source document. Each of these formats is called a **markout** and implies a presentation **layout**:
 
-| Frame       | Presented as | Notes                                                   |
-| ----------- | ------------ | ------------------------------------------------------- |
-| _inline_    | inline       | delimited on a single line; possibly surrounded by text |
-| _multiline_ | block        | delimited; spans multiple lines; must be flushed out    |
-| _unary_     | block        | line begins with markup sigil and ends with content     |
+| Markout     | Layout | Notes                                                   |
+| ----------- | ------ | ------------------------------------------------------- |
+| _line_      | block  | line begins with markup sigil and ends with content     |
+| _inline_    | inline | delimited on a single line; possibly surrounded by text |
+| _multiline_ | block  | delimited; spanning multiple lines; must be flushed out |
+
+As special cases, both the _media_ and _aside_ elements may be rendered in _floating_ layout (e.g., floating image or marginal note).
 
 ### Markup syntax
 
 Except for paragraphs, all markup elements follow this general syntax:
 
 ```text
-<sigil><preamble><content><postfix>
+<sigil><prefig><content><config>
 ```
 
 The markup constituents are:
 
-| Part       | Delimiter           | Notes                                      |
-| ---------- | ------------------- | ------------------------------------------ |
-| _sigil_    | space, line break   | introducer symbol (or sequence of symbols) |
-| _preamble_ | parentheses         | attribute block preceding the content      |
-| _content_  | brackets, backticks | rich/plain text block                      |
-| _postfix_  | parentheses         | attribute block succeeding the content     |
+| Part      | Delimiter           | Notes                                      |
+| --------- | ------------------- | ------------------------------------------ |
+| _sigil_   | space, line break   | introducer symbol (or sequence of symbols) |
+| _prefig_  | parentheses         | attribute block preceding the content      |
+| _content_ | brackets, backticks | rich/plain text block                      |
+| _config_  | parentheses         | attribute block succeeding the content     |
 
 ### Markup sigil
 
-The **sigil** introduces a markup element. It is generally composed of one or more punctuation marks, but there are a few notable exceptions:
+The **sigil** introduces a markup element. It is generally composed of one or two punctuation marks, but there are some notable exceptions:
 
 | Element             | Notes                                               | Example             |
 | ------------------- | --------------------------------------------------- | ------------------- |
@@ -124,16 +126,16 @@ string`
 The following rules apply:
 
 - Interspace is ignored. (including line breaks)
-- Identifiers must satisfy the regex `/\w+/`.
+- Identifiers must satisfy the regex `/[\w:-]+/`.
 - Escape sequences are allowed in quoted strings.
-- Preamble and postfix are merged in that order.
+- Prefiguration and configuration are merged in that order.
 - Repeated assignments simply overwrite the attribute value.
 
 #### Key attribute
 
-For convenience, a simplified syntax is allowed in which a single string value (with no identifier) gets assigned to the most important attribute. The latter is denoted as **key attribute**:
+For convenience, a simplified syntax is permitted in which a single string value (without identifier) is assigned to the most important attribute. The latter is called the **key attribute**:
 
-|                  Preamble | Postfix                    | Unary                    |
+|             Prefiguration | Configuration              | Line syntax              |
 | ------------------------: | -------------------------- | ------------------------ |
 |       `@('target')[link]` | `@[link]('target')`        | `@('target') link`       |
 |      `!('source')[media]` | `![media]('source')`       | `!('source') media`      |
@@ -271,14 +273,11 @@ The available item types for each kind of list are:
 | `[x]` | checked box     | checklist |
 | `[✓]` | checked box     | checklist |
 
-The first item in an ordered list is denoted as the _leader_. The leader establishes the numbering scheme, so that:
-
-- list items can be rendered appropriately; and
-- the formatter can normalize item sigils based on it.
+The first item in an ordered list is called the _leader_: it establishes the numbering scheme, so that list items can be rendered accordingly and the formatter can normalize item sigils based on it.
 
 #### List nesting
 
-The dash symbol (`-`) also serves as level indicator for nestable items:
+The dash symbol (`-`) serves an additional function — it can be used as level indicator for nestable items:
 
 ```text
 - item
@@ -297,7 +296,7 @@ The dash symbol (`-`) also serves as level indicator for nestable items:
   -[✓] subitem 2
 ```
 
-The same behavior can be accomplished through the more general, multiline syntax:
+This behavior can still be accomplished through the more general, multiline syntax:
 
 ```text
 A.[
@@ -325,7 +324,7 @@ The general syntax for **tables** is:
 ]
 ```
 
-The pipe symbol (`|`) separates cells within a row. Rows may have arbitrary number of cells, regardless of other rows. The number of columns in a table is given by the row with most cells. Cells are assigned to columns from left to right, in order of appearance in the source document.
+The pipe symbol (`|`) separates cells within a row. Rows can have an arbitrary number of cells, regardless of other rows. The number of columns in a table is determined by the row with the highest number of cells. Cells are assigned to columns from left to right, in the order they appear in the source document.
 
 #### Header cell
 
@@ -337,11 +336,11 @@ If a table cell begins with a hashtag (`#`), it is considered the **header** of 
 [ # header | 3        | 4        ]
 ```
 
-The exact meaning of a header cell is renderer-dependent. Usually, a header in the topmost row is considered a column header; similarly, a header in the leftmost column is considered a row header. Column headers take precedence over row headers.
+The exact meaning of a header cell depends on the renderer. Typically, a header in the top row is considered a column header; similarly, a header in the leftmost column is considered a row header. Column headers take precedence over row headers.
 
 #### Divisor row
 
-A row composed solely of dashes (`-`) is called a **divisor** row: it is rendered as a solid line in place of the affected row. Tables can have multiple divisor rows (or none at all), and the row itself may consist of a single cell:
+A row composed exclusively of dashes (`-`) is called a **divisor** row: it is rendered as a solid line in place of the affected row. Tables can have multiple divisor rows (or none), and the row may itself consist of a single cell:
 
 ```text
 [ cell | cell ]
@@ -380,11 +379,11 @@ Note how the `align` attribute serves two important functions:
 - text alignment per column (which may persist across rows)
 - merging of adjacent cells
 
-This design is intentional, to avoid syntax overload within table rows. The formatter is free to align content within cells according to the specified alignment/spanning setting.
+This design is intentional, to avoid syntax overload inside table rows. The formatter is free to align content within rows according to the specified alignment/spanning setting.
 
 ### Components
 
-The main way to extend rendering capability is through **components**. These can provide non-textual cues, interactive behavior, or code-driven visualization — maps, plots, graphs, charts, diagrams, etc.
+The primary way to extend rendering capabilities is through **components**. These elements can provide non-textual cues, interactive behavior, or code-driven visualization — maps, plots, graphs, charts, diagrams, etc.
 
 Here's a (non-exhaustive) list of components that deserve support:
 
@@ -406,11 +405,11 @@ Here's a (non-exhaustive) list of components that deserve support:
 | _filter_             | `div`, `search`, `input`      | Child filtering      |
 | _progress_           | `progress`                    | Completion indicator |
 
-If a component provides elements that are subject to [cross-referencing](#cross-referencing), it should register itself in the appropriate namespace to subscribe to auto-numbering.
+If a component provides objects that are subject to [cross-referencing](#cross-referencing), it should register itself in the appropriate namespace to subscribe to auto-numbering.
 
 ## Preprocessing
 
-Preprocessing constructs appear within angled brackets:
+The **preprocessing** constructs are handled before parsing. They appear within angled brackets:
 
 | Syntax            | Meaning    |
 | ----------------- | ---------- |
@@ -428,29 +427,43 @@ The preprocessor is responsible for:
 
 ### Directive instructions
 
-A preprocessor **directive** may contain multiple kinds of instructions, some of which are not currently supported:
+A preprocessor **directive** may contain multiple _statements_, each being an instance of an **instruction**. Below are listed the available instructions, some of which are not currently supported:
 
-| Type                     | Supported |
-| ------------------------ | --------- |
-| `=` (assignment)         | ☑️        |
-| `include`/`import`       | ❌        |
-| `if`/`else`/`end`        | ❌        |
-| `for`/`in`/`end`         | ❌        |
-| `case`/`of`/`else`/`end` | ❌        |
+| Instruction              | Supported | Meaning      |
+| ------------------------ | --------- | ------------ |
+| `=`                      | ☑️        | assignment   |
+| `include`                | ❌        | transclusion |
+| `if`/`else`/`end`        | ❌        | branching    |
+| `for`/`in`/`end`         | ❌        | repetition   |
+| `case`/`of`/`else`/`end` | ❌        | selection    |
 
 As the language evolves and starts supporting more instructions, it will become much more powerful.
 
 #### Variable assignment
 
-The variable **assignment** instruction works exactly like [attribute](#attribute-block) assignment, except that the value is stored in document metadata. It can be used for various purposes, but especially:
+The **assignment** instruction works exactly like [attribute](#attribute-block) assignment, except that the value is stored in a named variable in document metadata. It can be used for various purposes, but especially:
 
 - to set the document `version` and `encoding` (as in XML)
 - to interpolate cryptic text, such as long URLs
 - as a rudimentary templating technique
 
+#### Transclusion
+
+The **transclusion** instruction behaves like a _scoped macro expansion_: it introduces a child scope, resolves the referenced document, processes its content, and inserts the result at the invocation point.
+
+Variables from the current scope are visible in the child scope, but not vice versa; homonymous variables are [_shadowed_]. Global registries, such as counters used for cross-referencing, have shared scope and may be updated.
+
+Transcluded documents are primarily intended as _structural fragments_ rather than reusable templates. Multiple expansion of the same document is permitted only if object labels use [variable expansion](#variable-expansion) to ensure uniqueness.
+
+#### Flow-control
+
+The **branching**, **repetition** and **selection** instructions are the standard mechanisms used for _flow control_ in programming languages and behave the same way here.
+
 ### Cross-referencing
 
-A **cross-reference** is a link to an internal, auto-numbered object. Referenced objects are numbered separately per namespace. The natively-supported namespaces are listed below:
+A **cross-reference** is a _link_ to an internal, auto-numbered object: the preprocessor looks up the number of the referenced object and places a link to it at the invocation point.
+
+Referable objects are numbered separately per namespace. The natively-supported namespaces are listed below:
 
 | Namespace | Used for    |
 | --------- | ----------- |
@@ -463,13 +476,17 @@ A **cross-reference** is a link to an internal, auto-numbered object. Referenced
 
 The following rules apply:
 
-- reference labels can be any valid identifier (`/\w+/`); they are scoped by namespace.
+- reference labels can be any valid identifier (`/[\w:-]+/`); they are scoped by namespace.
 - generated markup may be subject to additional formatting (e.g., superscript for footnotes).
 - additional namespaces can be registered by the renderer for its supported [components](#components).
 
+### Variable expansion
+
+Variable **expansion** is equivalent to text _interpolation/substitution_ used in templating engines: the preprocessor looks up the value stored in the referenced variable and places it at the invocation point.
+
 ## Escape sequences
 
-An **escape sequence** is a sequence of ASCII characters that produces text or markup, which cannot otherwise be typed, or could compromise readability if typed explicitly. The supported sequences are listed below:
+An **escape sequence** is a sequence of ASCII characters that produces text or markup, which cannot otherwise be typed, or could compromise readability if typed explicitly. The available sequences are listed below:
 
 | Syntax     | Used for        | Parameter       |
 | ---------- | --------------- | --------------- |
@@ -489,7 +506,7 @@ Legend:
 - `.` — character placeholder
 - `+` — variable-length repetition
 
-Escape sequences must be handled by the preprocessor or parser, i.e., they should never reach the renderer.
+Escape sequences are typically handled by the preprocessor or parser, i.e., they almost never reach the renderer.
 
 ### Break-control
 
@@ -500,7 +517,7 @@ The **break** markers express author intent about where text may or may not wrap
 - soft markers _suggest_ a breaking opportunity;
 - no-break markers _protect_ continuity.
 
-Available parameters for break escapes are:
+Available parameters for break escapes:
 
 | Letter | Used for                                             |
 | ------ | ---------------------------------------------------- |
@@ -582,5 +599,6 @@ When a backslash (`\`) is followed directly by one of the ASCII punctuation symb
 
 <!-- list of URLs -->
 
+[_shadowed_]: https://en.wikipedia.org/wiki/Variable_shadowing
 [_shortcode_]: https://api.github.com/emojis
 [_codepoint_]: https://developer.mozilla.org/en-US/docs/Glossary/Code_point
