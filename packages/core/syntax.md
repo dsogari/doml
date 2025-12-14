@@ -1,17 +1,17 @@
 # Core Syntax
 
-A **Plumark** document (`.plu` or `.pmark`) can be composed with four essential constructs:
+A **Plumark** document (`.plu` or `.pmark`) can be composed with four essential kinds of construct:
 
-- _frontmatter_
-- _markup_
-- _preprocessing_
-- _escape sequence_
-
-They are described below.
+- [_frontmatter_](#frontmatter)
+- [_markup_](#markup)
+- [_processing_](#processing)
+- [_escape sequence_](#escape-sequence)
 
 ## Frontmatter
 
-The **frontmatter** block, if present, must appear at the beginning of the document within a dashed fence:
+The **frontmatter** block comprises _opaque_ content (i.e., uninterpreted by the parser) that can be used by renderers for tooling purposes — e.g., CSS stylesheet, YAML/TOML configuration.
+
+If present, it must appear at the beginning of the document within a dashed fence:
 
 ```text
 ---
@@ -19,69 +19,69 @@ frontmatter (opaque)
 ---
 ```
 
-Its content is _opaque_ (i.e., uninterpreted by the parser) and can be used by renderers for tooling purposes — e.g., CSS stylesheet, YAML/TOML configuration.
-
 ## Markup
 
-Any text that is not recognized as frontmatter, preprocessing, or escape sequence is considered **markup**. Markup is divided into _elements_, which can be classified both in terms of how they are _framed_ (or _marked out_) in the source document and how they are _presented_ (or _laid out_) in the rendered output.
+Any text that is not recognized as frontmatter, processing, or escape sequence is considered **markup**. Markup is divided into **elements**, which can be classified both in terms of how they are _framed_ (or _marked out_) in the source document and how they are _presented_ (or _laid out_) in the rendered output.
 
-In the source, elements follow a **coherent, precise, and flexible syntax**. They can have _content_, which may contain arbitrarily nested markup; and their behavior can be configured through markup _attributes_, which follow a flat structure.
+In the source, elements follow a coherent, precise, and flexible syntax. They can have **content**, which may contain arbitrarily nested markup; and their behavior can be configured through markup **attributes**, organized in an associative array.
 
 This section describes the various types of markup elements, how they can be instantiated, their rendering implications, and related concepts.
 
+### Markup mode
+
+Markup elements can be instantiated in different formats, depending on their arrangement in the source document. Each of these formats is called **mode** and implies a presentation **layout**:
+
+| Mode        | Layout | Delimited | Notes                                                           |
+| ----------- | ------ | --------- | --------------------------------------------------------------- |
+| _line_      | block  | ❌        | line begins with a [sigil](#markup-sigil) and ends with content |
+| _inline_    | inline | ☑️        | single-line; possibly surrounded by text                        |
+| _multiline_ | block  | ☑️        | must be flushed out; can span multiple lines                    |
+
+Depending on configuration, some elements may be rendered in a _floating_ layout (e.g., floating image or marginal note).
+
 ### Markup element
 
-An **element** in the source document is a piece of information that has meaning. The most basic type of element is the _paragraph_. Paragraphs are delimited by sequences of blank lines or by the end-of-file. Any text interspersed with other elements within a paragraph is considered _inline_, _free_ or _flowing_ text (not to be confused with _floating_).
+An **element** in the source document is a piece of information that has meaning. The most basic type of element is the _paragraph_. Paragraphs are delimited by sequences of blank lines or by the end-of-file.
 
-The more interesting elements are summarized below:
+Any text interspersed with elements in a paragraph is considered _inline_, _free-form_ or _flowing_ text (not to be confused with _floating_). Sequences of spaces are collapsed by default, unless escaped.
 
-| Syntax                  | HTML/CSS                     | Meaning              | Key attribute | Inline |
-| ----------------------- | ---------------------------- | -------------------- | ------------- | ------ |
-| `@[link]`               | `a`                          | hyperlink            | target        | ☑️     |
-| `![media]`              | `img`, `audio`, `video`      | embedded media       | source        | ☑️     |
-| `?[span]`               | `span`                       | anchor, focus, style | label         | ☑️     |
-| `*[bold]`               | `b`                          | bold face            |               | ☑️     |
-| `/[italic]`             | `i`                          | italic face          |               | ☑️     |
-| `~[struck]`             | `s`                          | struck-out text      |               | ☑️     |
-| `+[highlighted]`        | `mark`                       | highlighted text     | color         | ☑️     |
-| `_[subscript]`          | `sub`                        | subscript font       |               | ☑️     |
-| `^[superscript]`        | `sup`                        | superscript font     |               | ☑️     |
-| `**[strong]`            | `strong`                     | emphasized text      |               | ☑️     |
-| `//[emphasis]`          | `em`                         | emphasized text      |               | ☑️     |
-| `~~[deleted]`           | `del`                        | deleted text         |               | ☑️     |
-| `++[inserted]`          | `ins`                        | inserted text        |               | ☑️     |
-| `__[unarticulated]`     | `u`                          | text decoration      |               | ☑️     |
-| `^^[cited]`             | `cite`                       | citation             |               | ☑️     |
-| `` lang`code` ``        | `pre`, `code`                | monospace, snippet   | label         | ☑️     |
-| `` $`math` ``           | MathJax/KaTeX                | math expression      | label         | ☑️     |
-| `` &`verbatim` ``       | raw HTML                     | pass-through         |               | ☑️     |
-| `#[heading]`            | `h[1-6]`                     | heading              | label         | ❌     |
-| `"[quote]`              | `blockquote`                 | blockquote           | source        | ❌     |
-| `'[aside]`              | `aside`                      | sidenote, callout    | type          | ❌     |
-| `.[note]`               | `p`, `footer`                | footnote, tooltip    | label         | ❌     |
-| `:[topic]`              | `dl`, `dt`                   | glossary term        |               | ❌     |
-| `=[description]`        | `dl`, `dd`                   | glossary definition  |               | ❌     |
-| `-[list item]`          | `ul`, `li`                   | unordered list       |               | ❌     |
-| `ord.[list item]`       | `ol`, `li`                   | ordered list         |               | ❌     |
-| `[check][box]`          | `input`, `label`, `fieldset` | checklist            |               | ❌     |
-| `{name}[component]`     | `script`, generated          | semantic block       |               | ❌     |
-| `[ table cell \| ... ]` | `table` `tr`, `th`, `td`     | table row            | label         | ❌     |
-| `<[left-aligned]`       | `p`, `text-align`            | text alignment       | max-width     | ❌     |
-| `>[right-aligned]`      | `p`, `text-align`            | text alignment       | max-width     | ❌     |
-| `><[centered]`          | `p`, `text-align`            | text alignment       | max-width     | ❌     |
-| `<>[justified]`         | `p`, `text-align`            | text alignment       | max-width     | ❌     |
+The more interesting elements are summarized below — all of them support _multiline_ mode:
 
-### Markout & layout
-
-Markup elements can be instantiated in different formats, depending on their arrangement in the source document. Each of these formats is called a **markout** and implies a presentation **layout**:
-
-| Markout     | Layout | Notes                                                   |
-| ----------- | ------ | ------------------------------------------------------- |
-| _line_      | block  | line begins with markup sigil and ends with content     |
-| _inline_    | inline | delimited on a single line; possibly surrounded by text |
-| _multiline_ | block  | delimited; spanning multiple lines; must be flushed out |
-
-As special cases, both the _media_ and _aside_ elements may be rendered in _floating_ layout (e.g., floating image or marginal note).
+| Syntax                  | HTML/CSS                     | Meaning              | Key attr. | Line | Inline |
+| ----------------------- | ---------------------------- | -------------------- | --------- | ---- | ------ |
+| `@[link]`               | `a`                          | hyperlink            | target    | ☑️   | ☑️     |
+| `![media]`              | `img`, `audio`, `video`      | embedded media       | source    | ☑️   | ☑️     |
+| `?[span]`               | `span`                       | anchor, focus, style | label     | ☑️   | ☑️     |
+| `*[bold]`               | `b`                          | bold face            |           | ☑️   | ☑️     |
+| `/[italic]`             | `i`                          | italic face          |           | ☑️   | ☑️     |
+| `~[struck]`             | `s`                          | struck-out text      |           | ☑️   | ☑️     |
+| `+[highlighted]`        | `mark`                       | highlighted text     | color     | ☑️   | ☑️     |
+| `_[subscript]`          | `sub`                        | subscript font       |           | ☑️   | ☑️     |
+| `^[superscript]`        | `sup`                        | superscript font     |           | ☑️   | ☑️     |
+| `**[strong]`            | `strong`                     | emphasized text      |           | ☑️   | ☑️     |
+| `//[emphasis]`          | `em`                         | emphasized text      |           | ☑️   | ☑️     |
+| `~~[deleted]`           | `del`                        | deleted text         |           | ☑️   | ☑️     |
+| `++[inserted]`          | `ins`                        | inserted text        |           | ☑️   | ☑️     |
+| `__[unarticulated]`     | `u`                          | text decoration      |           | ☑️   | ☑️     |
+| `^^[cited]`             | `cite`                       | citation             |           | ☑️   | ☑️     |
+| `` lang`snippet` ``     | `pre`, `code`, `samp`, `kbd` | monospaced, snippet  | label     | ❌   | ☑️     |
+| `` $`math` ``           | MathJax/KaTeX                | math expression      | label     | ❌   | ☑️     |
+| `` &`verbatim` ``       | raw HTML                     | pass-through         |           | ❌   | ☑️     |
+| `#[heading]`            | `h[1-6]`                     | heading              | label     | ☑️   | ❌     |
+| `"[quote]`              | `blockquote`                 | blockquote           | source    | ☑️   | ❌     |
+| `'[aside]`              | `aside`                      | sidenote, callout    | type      | ☑️   | ❌     |
+| `.[note]`               | `p`, `footer`                | footnote, tooltip    | label     | ☑️   | ❌     |
+| `:[topic]`              | `dl`, `dt`                   | glossary term        |           | ☑️   | ❌     |
+| `=[description]`        | `dl`, `dd`                   | glossary definition  |           | ☑️   | ❌     |
+| `-[list item]`          | `ul`, `li`                   | unordered list       |           | ☑️   | ❌     |
+| `ord.[list item]`       | `ol`, `li`                   | ordered list         |           | ☑️   | ❌     |
+| `[check][box]`          | `input`, `label`             | checklist            |           | ☑️   | ❌     |
+| `{name}[component]`     | `script`, generated          | semantic block       |           | ☑️   | ❌     |
+| `[ table cell \| ... ]` | `table` `tr`, `th`, `td`     | table row            | label     | ❌   | ❌     |
+| `<[left-aligned]`       | `p`, `text-align`            | text alignment       | max-width | ☑️   | ❌     |
+| `>[right-aligned]`      | `p`, `text-align`            | text alignment       | max-width | ☑️   | ❌     |
+| `><[centered]`          | `p`, `text-align`            | text alignment       | max-width | ☑️   | ❌     |
+| `<>[justified]`         | `p`, `text-align`            | text alignment       | max-width | ☑️   | ❌     |
 
 ### Markup syntax
 
@@ -91,18 +91,23 @@ Except for paragraphs, all markup elements follow this general syntax:
 <sigil><prefig><content><config>
 ```
 
-The markup constituents are:
+Its constituents are:
 
 | Part      | Delimiter           | Notes                                      |
 | --------- | ------------------- | ------------------------------------------ |
 | _sigil_   | space, line break   | introducer symbol (or sequence of symbols) |
 | _prefig_  | parentheses         | attribute block preceding the content      |
-| _content_ | brackets, backticks | rich/plain text block                      |
+| _content_ | brackets, backticks | rich/literal text block                    |
 | _config_  | parentheses         | attribute block succeeding the content     |
+
+Special cases:
+
+- table rows have neither sigil nor prefiguration, since they are by themselves a rich text block
+- snippet, math and verbatim elements support only literal content
 
 ### Markup sigil
 
-The **sigil** introduces a markup element. It is generally composed of one or two punctuation marks, but there are some notable exceptions:
+The **sigil** introduces a markup element. It generally consists of one or two punctuation marks, but there are some notable exceptions:
 
 | Element             | Notes                                               | Example             |
 | ------------------- | --------------------------------------------------- | ------------------- |
@@ -110,17 +115,17 @@ The **sigil** introduces a markup element. It is generally composed of one or tw
 | _checkbox_          | one character enclosed in square brackets           | `[ ]`, `[x]`, `[✓]` |
 | _table row_         | at least two characters enclosed in square brackets | `[a ]`, `[ a]`      |
 | _component_         | identifier enclosed in curly braces (with no space) | `{name}`            |
-| _code snippet_      | language identifier (when followed by a backtick)   | `lang`              |
+| _snippet_           | language identifier (when followed by a backtick)   | `lang`              |
 
 ### Attribute block
 
-An attribute block comprises markup **metadata**. It is parenthesized and follows a flat structure:
+An attribute block comprises markup **metadata**. In its expanded form, it is a parenthesized dictionary with a flat structure:
 
 ```text
-identifier = 'single-quoted string'
+(identifier = 'single-quoted string'
 identifier = "double-quoted string"
 identifier = `literal multiline
-string`
+string`)
 ```
 
 The following rules apply:
@@ -133,25 +138,25 @@ The following rules apply:
 
 #### Key attribute
 
-For convenience, a simplified syntax is permitted in which a single string value (without identifier) is assigned to the most important attribute. The latter is called the **key attribute**:
+For convenience, a simplified syntax is permitted in which a single string value (without identifier) is assigned to the element's most important attribute. The latter is called the **key attribute**:
 
-|             Prefiguration | Configuration              | Line syntax              |
-| ------------------------: | -------------------------- | ------------------------ |
-|       `@('target')[link]` | `@[link]('target')`        | `@('target') link`       |
-|      `!('source')[media]` | `![media]('source')`       | `!('source') media`      |
-|        `?('label')[span]` | `?[span]('label')`         | `?('label') span`        |
-| `+('color')[highlighted]` | `+[highlighted]('color')`  | `+('color') highlighted` |
-| `` lang('label')`code` `` | ``lang`code`('label')``    |                          |
-|    `` $('label')`math` `` | ``$`math`('label')``       | `$('label') math`        |
-|     `#('label')[heading]` | `#[heading]('label')`      | `#('label') heading`     |
-|      `"('source')[quote]` | `"[quote]('source')`       | `"('source') quote`      |
-|        `'('type')[aside]` | `'[aside]('type')`         | `'('type') aside`        |
-|        `.('label')[note]` | `.[note]('label')`         | `.('label') note`        |
-|                           | `[ cell \| ... ]('label')` |                          |
+|                Prefiguration | Configuration              | Line mode                |
+| ---------------------------: | -------------------------- | ------------------------ |
+|          `@('target')[link]` | `@[link]('target')`        | `@('target') link`       |
+|         `!('source')[media]` | `![media]('source')`       | `!('source') media`      |
+|           `?('label')[span]` | `?[span]('label')`         | `?('label') span`        |
+|    `+('color')[highlighted]` | `+[highlighted]('color')`  | `+('color') highlighted` |
+| `` lang('label')`snippet` `` | ``lang`snippet`('label')`` |                          |
+|       `` $('label')`math` `` | ``$`math`('label')``       |                          |
+|        `#('label')[heading]` | `#[heading]('label')`      | `#('label') heading`     |
+|         `"('source')[quote]` | `"[quote]('source')`       | `"('source') quote`      |
+|           `'('type')[aside]` | `'[aside]('type')`         | `'('type') aside`        |
+|           `.('label')[note]` | `.[note]('label')`         | `.('label') note`        |
+|                              | `[ cell \| ... ]('label')` |                          |
 
 ### Rich text block
 
-A rich text block comprises **markup** content. It can be set within square brackets:
+A text block enclosed in square brackets comprises **rich** content:
 
 ```text
 *[inline bold and and /[italic]]
@@ -167,7 +172,7 @@ A rich text block comprises **markup** content. It can be set within square brac
 ]
 ```
 
-Or, in the absence of brackets:
+In _line_ mode, brackets are omitted and the content spans the entire line:
 
 ```text
 @('target') link
@@ -201,11 +206,12 @@ __ unarticulated
 <> justified
 ```
 
-### Plain text block
+### Literal text block
 
-A plain text block comprises **literal** content. It can be set within backticks:
+A text block enclosed in backticks comprises **literal** content:
 
 ```text
+*`bold text with *[mock <markup>]`
 cpp`void func()`
 ts``
 const abc = `my string`;
@@ -220,13 +226,6 @@ $`
 `
 ```
 
-Or, in the absence of backticks:
-
-```text
-$ math
-& verbatim
-```
-
 The number of backticks in the closing delimiter must mach that of the opening delimiter, e.g.:
 
 ````text
@@ -238,13 +237,14 @@ snippet with inline `snippet`
 ```
 ````
 
-Although opaque to the parser, literal content is interpreted by the renderer according to element type:
+Although opaque to the parser, literal content is handled specially by the renderer according to element type:
 
-| Element    | Rendered as                                           |
-| ---------- | ----------------------------------------------------- |
-| _snippet_  | monospaced code; syntax-highlighted; spaces preserved |
-| _math_     | generated markup or script (KaTeX, MathJax)           |
-| _verbatim_ | raw markup code (HTML, LaTeX)                         |
+| Element    | Rendered as                                                 |
+| ---------- | ----------------------------------------------------------- |
+| _snippet_  | sanitized; spaces preserved; monospaced; syntax-highlighted |
+| _math_     | generated markup or script (KaTeX, MathJax)                 |
+| _verbatim_ | raw markup code (HTML, LaTeX)                               |
+| all others | sanitized; spaces collapsed                                 |
 
 ### Lists
 
@@ -405,29 +405,31 @@ Here's a (non-exhaustive) list of components that deserve support:
 | _filter_             | `div`, `search`, `input`      | Child filtering      |
 | _progress_           | `progress`                    | Completion indicator |
 
-If a component provides objects that are subject to [cross-referencing](#cross-referencing), it should register itself in the appropriate namespace to subscribe to auto-numbering.
+If a component can be subject to [cross-referencing](#cross-referencing), it should offer a `label` attribute.
 
-## Preprocessing
+## Processing
 
-The **preprocessing** constructs are handled before parsing. They appear within angled brackets:
+The **processing** constructs are typically handled before parsing. They appear within angled brackets:
 
-| Syntax            | Meaning    |
-| ----------------- | ---------- |
-| `<% comment %>`   | annotation |
-| `<? directive ?>` | evaluation |
-| `<namespace:id>`  | reference  |
-| `<$variable>`     | expansion  |
+| Syntax              | Meaning    | Inline |
+| ------------------- | ---------- | ------ |
+| `<? directive ?>`   | evaluation | ❌     |
+| `<% comment %>`     | annotation | ☑️     |
+| `<namespace:label>` | reference  | ☑️     |
+| `<$variable>`       | expansion  | ☑️     |
 
-The preprocessor is responsible for:
+The processor is responsible for:
 
 - stripping **comments** out;
 - storing state in the form of document **metadata**;
 - performing a two-pass algorithm to resolve cross-**references**;
 - interpolating **variables** using the values stored in metadata.
 
+This section discusses the various types of processing, how they can affect the rendering pipeline, and related concepts.
+
 ### Directive instructions
 
-A preprocessor **directive** may contain multiple _statements_, each being an instance of an **instruction**. Below are listed the available instructions, some of which are not currently supported:
+A processor **directive** may contain multiple _statements_, each being an instance of an **instruction**. Below are listed the available instructions, some of which are not currently supported:
 
 | Instruction              | Supported | Meaning      |
 | ------------------------ | --------- | ------------ |
@@ -453,7 +455,7 @@ The **transclusion** instruction behaves like a _scoped macro expansion_: it int
 
 Variables from the current scope are visible in the child scope, but not vice versa; homonymous variables are [_shadowed_]. Global registries, such as counters used for cross-referencing, have shared scope and may be updated.
 
-Transcluded documents are primarily intended as _structural fragments_ rather than reusable templates. Multiple expansion of the same document is permitted only if object labels use [variable expansion](#variable-expansion) to ensure uniqueness.
+Transcluded documents are primarily intended as _structural fragments_ rather than reusable templates. Nevertheless, multiple expansion of the same document is permitted, provided that its xref labels use [variable expansion](#variable-expansion) to ensure uniqueness.
 
 #### Flow-control
 
@@ -461,30 +463,25 @@ The **branching**, **repetition** and **selection** instructions are the standar
 
 ### Cross-referencing
 
-A **cross-reference** is a _link_ to an internal, auto-numbered object: the preprocessor looks up the number of the referenced object and places a link to it at the invocation point.
+A **cross-reference** is a _link_ to an auto-numbered element. The processor looks up the number assigned to the referenced element and places a link to it at the invocation point.
 
-Referable objects are numbered separately per namespace. The natively-supported namespaces are listed below:
+Referable elements are numbered separately per _namespace_. User-defined namespaces (`/\w+/`) can appear as prefix in an element's `label` attribute: `namespace:label`.
 
-| Namespace | Used for    |
-| --------- | ----------- |
-| `fig`     | figure      |
-| `tbl`     | table       |
-| `sec`     | section     |
-| `fn`      | footnote    |
-| `ex`      | code sample |
-| `eq`      | equation    |
+If the namespace is omitted, the element will be registered in the _default_ namespace and must be referenced in the same way — without namespace. E.g.:
 
-The following rules apply:
+```text
+See footnote<1>.
 
-- reference labels can be any valid identifier (`/[\w:-]+/`); they are scoped by namespace.
-- generated markup may be subject to additional formatting (e.g., superscript for footnotes).
-- additional namespaces can be registered by the renderer for its supported [components](#components).
+.('1') footnote
+```
+
+Note that generated markup may be subject to additional formatting, such as superscript for footnotes.
 
 ### Variable expansion
 
-Variable **expansion** is equivalent to text _interpolation/substitution_ used in templating engines: the preprocessor looks up the value stored in the referenced variable and places it at the invocation point.
+Variable **expansion** is equivalent to text _interpolation/substitution_ used in templating engines: the processor looks up the value stored in the referenced variable and places it at the invocation point.
 
-## Escape sequences
+## Escape sequence
 
 An **escape sequence** is a sequence of ASCII characters that produces text or markup, which cannot otherwise be typed, or could compromise readability if typed explicitly. The available sequences are listed below:
 
@@ -506,7 +503,7 @@ Legend:
 - `.` — character placeholder
 - `+` — variable-length repetition
 
-Escape sequences are typically handled by the preprocessor or parser, i.e., they almost never reach the renderer.
+They are typically handled by the processor or parser, almost never reaching the renderer. This section explains the various types of escape sequences.
 
 ### Break-control
 
@@ -595,7 +592,7 @@ both produce
 
 ### Literal escape
 
-When a backslash (`\`) is followed directly by one of the ASCII punctuation symbols, the latter is produced **literally**, as if enclosed in a [verbatim](#plain-text-block) element.
+When a backslash (`\`) is followed directly by one of the ASCII punctuation symbols, the latter is produced **literally**, as if enclosed in a [literal block](#literal-text-block).
 
 <!-- list of URLs -->
 
